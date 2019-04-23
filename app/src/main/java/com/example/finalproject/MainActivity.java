@@ -29,7 +29,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
 
-public final class Photo_Catcher extends AppCompatActivity {
+public final class MainActivity extends AppCompatActivity {
     private static final int IMAGE_CAPTURE_REQUEST_CODE = 1;
     private static final String TAG = "photo catcher";
     private boolean canWriteToPublicStorage = false;
@@ -37,7 +37,7 @@ public final class Photo_Catcher extends AppCompatActivity {
     private static final int REQUEST_WRITE_STORAGE = 112;
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.photo_catcher);
+        setContentView(R.layout.activity_main);
         final ImageButton camera = findViewById(R.id.camera);
         camera.setOnClickListener(v -> {
             Log.d(TAG, "camera button clicked");
@@ -50,12 +50,12 @@ public final class Photo_Catcher extends AppCompatActivity {
         final ImageView menu = findViewById(R.id.menu);
         enableOrDisableButtons(false);
 
-        canWriteToPublicStorage = (ContextCompat.checkSelfPermission(Photo_Catcher.this,
+        canWriteToPublicStorage = (ContextCompat.checkSelfPermission(MainActivity.this,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED);
         Log.d(TAG, "Do we have permission to write to external storage: "
                 + canWriteToPublicStorage);
         if (!canWriteToPublicStorage) {
-            ActivityCompat.requestPermissions(Photo_Catcher.this,
+            ActivityCompat.requestPermissions(MainActivity.this,
                     new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
                     REQUEST_WRITE_STORAGE);
         }

@@ -1,5 +1,4 @@
 apply plugin: 'com.android.application'
-
 android {
     compileSdkVersion 28
     defaultConfig {
@@ -7,6 +6,7 @@ android {
         minSdkVersion 15
         targetSdkVersion 28
         versionCode 1
+        multiDexEnabled true
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
@@ -16,13 +16,46 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    buildToolsVersion '28.0.3'
+    packagingOptions {
+        exclude 'test-file-gbk.bin'
+        exclude 'org/apache/commons/io/FileUtilsTestDataCR.dat'
+        exclude 'lang-708-input.txt'
+        exclude 'test-file-iso8859-1-shortlines-win-linebr.bin'
+        exclude 'org/apache/commons/io/FileUtilsTestDataCRLF.dat'
+        exclude 'test-file-windows-31j.bin'
+        exclude 'test-file-x-windows-950.bin'
+        exclude 'test-file-iso8859-1.bin'
+        exclude 'org/apache/commons/io/testfileBOM.xml'
+        exclude 'test-file-utf8-win-linebr.bin'
+        exclude 'test-file-empty.bin'
+        exclude 'test-file-utf16le.bin'
+        exclude 'org/apache/commons/io/FileUtilsTestDataLF.dat'
+        exclude 'test-file-x-windows-949.bin'
+        exclude 'test-file-utf8-cr-only.bin'
+        exclude 'test-file-simple-utf8.bin'
+        exclude 'test-file-utf16be.bin'
+        exclude 'test-file-utf8.bin'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/NOTICE'
+        exclude 'org/apache/commons/io/testfileNoBOM.xml'
+        exclude 'test-file-shiftjis.bin'
+        exclude 'java.policy'
+        exclude 'test-file-20byteslength.bin'
+    }
+    dexOptions {
+    }
 }
-
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'com.android.support:appcompat-v7:28.0.0'
     implementation 'com.android.support.constraint:constraint-layout:1.1.3'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    implementation files('libs/commons-io-2.6.jar')
 }
