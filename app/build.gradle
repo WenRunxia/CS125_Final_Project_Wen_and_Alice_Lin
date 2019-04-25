@@ -3,7 +3,7 @@ android {
     compileSdkVersion 28
     defaultConfig {
         applicationId "com.example.finalproject"
-        minSdkVersion 15
+        minSdkVersion 23
         targetSdkVersion 28
         versionCode 1
         multiDexEnabled true
@@ -58,4 +58,6 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     implementation files('libs/commons-io-2.6.jar')
+    implementation files('libs/gson-2.8.5.jar')
+    implementation files('libs/volley.jar')
 }

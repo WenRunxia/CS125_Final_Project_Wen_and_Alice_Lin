@@ -2,10 +2,13 @@ package com.example.finalproject;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -14,42 +17,102 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
+import android.text.InputType;
+import android.util.Log;
+import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.util.Log;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.Volley;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 
 
+/**
+ * the main activity.
+ */
 public final class Photo_Catcher extends AppCompatActivity {
+    /** Default logging tag for messages from the main activity. */
+    private static final String TAG = "MP3:Main";
+
+    /** Constant to perform a read file request. */
+    private static final int READ_REQUEST_CODE = 42;
+
+    /** Constant to request an image capture. */
     private static final int IMAGE_CAPTURE_REQUEST_CODE = 1;
-    private static final String TAG = "photo catcher";
-    private boolean canWriteToPublicStorage = false;
-    private static final int READ_REQUEST_CODE = 43;
+
+    /** Constant to request permission to write to the external storage device. */
     private static final int REQUEST_WRITE_STORAGE = 112;
+
+    /** Threshold for calling something a dog or cat. */
+    private static final double RECOGNITION_THRESHOLD = 0.9;
+
+    /** Request queue for our network requests. */
+    private RequestQueue requestQueue;
+
+    /** Whether we can write to public storage. */
+    private boolean canWriteToPublicStorage = false;
+
+    /**
+     * Run when our activity comes into view.
+     *
+     * @param savedInstanceState state that was saved by the activity last time it was paused
+     */
+    @Override
     protected void onCreate(final Bundle savedInstanceState) {
+        requestQueue = Volley.newRequestQueue(this);
+
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.photo_catcher);
-        final ImageButton camera = findViewById(R.id.camera);
-        camera.setOnClickListener(v -> {
-            Log.d(TAG, "camera button clicked");
-            startCamera();
+
+        // Load the main layout for our activity
+        setContentView(R.layout.activity_main);
+
+        /*
+         * Set up handlers for each button in our UI. These run when the buttons are clicked.
+         */
+        final Button openFile = findViewById(R.id.openFile);
+        openFile.setOnClickListener(v -> {
+            Log.d(TAG, "Open file button clicked");
+            startOpenFile();
         });
-        final Button reset = findViewById(R.id.reset);
-        findViewById(R.id.start).setOnClickListener(v -> {
-            startInfo();
+        final ImageButton takePhoto = findViewById(R.id.camera);
+        takePhoto.setOnClickListener(v -> {
+            Log.d(TAG, "Take photo button clicked");
+            startTakePhoto();
         });
-        final ImageView menu = findViewById(R.id.menu);
+        final Button processImage = findViewById(R.id.start);
+        processImage.setOnClickListener(v -> {
+            Log.d(TAG, "Process image button clicked");
+            startProcessImage();
+        });
+
+        // There are a few button that we disable into an image has been loaded
         enableOrDisableButtons(false);
 
+        /*
+         * Here we check for permission to write to external storage and request it if necessary.
+         * Normally you would not want to do this on ever start, but we want to be persistent
+         * since it makes development a lot easier.
+         */
         canWriteToPublicStorage = (ContextCompat.checkSelfPermission(Photo_Catcher.this,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED);
         Log.d(TAG, "Do we have permission to write to external storage: "
@@ -60,32 +123,18 @@ public final class Photo_Catcher extends AppCompatActivity {
                     REQUEST_WRITE_STORAGE);
         }
     }
-    private boolean photoRequestActive = false;
-    private File currentPhotoFile = null;
-    private void startCamera() {
-        if (photoRequestActive) {
-            Log.w(TAG, "Overlapping photo requests");
-            return;
-        }
-        // Set up an intent to launch the camera app and have it take a photo for us
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        currentPhotoFile = getSaveFilename();
-        if (takePictureIntent.resolveActivity(getPackageManager()) == null
-                || currentPhotoFile == null) {
-            // Alert the user if there was a problem taking the photo
-            Toast.makeText(getApplicationContext(), "Problem taking photo",
-                    Toast.LENGTH_LONG).show();
-            Log.w(TAG, "Problem taking photo");
-            return;
-        }
 
-        // Configure and launch the intent
-        Uri photoURI = FileProvider.getUriForFile(this,
-                "com.example.finalproject.fileprovider", currentPhotoFile);
-        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-        photoRequestActive = true;
-        startActivityForResult(takePictureIntent, IMAGE_CAPTURE_REQUEST_CODE);
-    }
+    /**
+     * Called when an intent that we requested has finished.
+     *
+     * In our case, we either asked the file browser to open a file, or the camera to take a
+     * photo. We respond appropriately below.
+     *
+     * @param requestCode the code that we used to make the request
+     * @param resultCode a code indicating what happened: success or failure
+     * @param resultData any data returned by the activity
+     */
+    @Override
     public void onActivityResult(final int requestCode, final int resultCode,
                                  final Intent resultData) {
 
@@ -105,6 +154,9 @@ public final class Photo_Catcher extends AppCompatActivity {
         } else if (requestCode == IMAGE_CAPTURE_REQUEST_CODE) {
             currentPhotoURI = Uri.fromFile(currentPhotoFile);
             photoRequestActive = false;
+            if (canWriteToPublicStorage) {
+                addPhotoToGallery(currentPhotoURI);
+            }
         } else {
             Log.w(TAG, "Unhandled activityResult with code " + requestCode);
             return;
@@ -114,10 +166,96 @@ public final class Photo_Catcher extends AppCompatActivity {
         Log.d(TAG, "Photo selection produced URI " + currentPhotoURI);
         loadPhoto(currentPhotoURI);
     }
-    void startInfo() {
-        Intent intent = new Intent(this, Dish_Screen.class);
-        startActivity(intent);
+
+
+    /**
+     * Start an open file dialog to look for image files.
+     */
+    private void startOpenFile() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("image/*");
+        startActivityForResult(intent, READ_REQUEST_CODE);
     }
+
+    /** Current file that we are using for our image request. */
+    private boolean photoRequestActive = false;
+
+    /** Whether a current photo request is being processed. */
+    private File currentPhotoFile = null;
+
+    /** Take a photo using the camera. */
+    private void startTakePhoto() {
+        if (photoRequestActive) {
+            Log.w(TAG, "Overlapping photo requests");
+            return;
+        }
+
+        // Set up an intent to launch the camera app and have it take a photo for us
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        currentPhotoFile = getSaveFilename();
+        if (takePictureIntent.resolveActivity(getPackageManager()) == null
+                || currentPhotoFile == null) {
+            // Alert the user if there was a problem taking the photo
+            Toast.makeText(getApplicationContext(), "Problem taking photo",
+                    Toast.LENGTH_LONG).show();
+            Log.w(TAG, "Problem taking photo");
+            return;
+        }
+
+        // Configure and launch the intent
+        Uri photoURI = FileProvider.getUriForFile(this,
+                "edu.illinois.cs.cs125.spring2019.mp3.fileprovider", currentPhotoFile);
+        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+        photoRequestActive = true;
+        startActivityForResult(takePictureIntent, IMAGE_CAPTURE_REQUEST_CODE);
+    }
+
+    /** Initiate the image recognition process. */
+    private void startProcessImage() {
+        if (currentBitmap == null) {
+            Toast.makeText(getApplicationContext(), "No image selected",
+                    Toast.LENGTH_LONG).show();
+            Log.w(TAG, "No image selected");
+            return;
+        }
+
+        /*
+         * Launch our background task which actually makes the request. It will call
+         * finishProcessImage below with the JSON string when it finishes.
+         */
+        new Tasks.ProcessImageTask(Photo_Catcher.this, requestQueue)
+                .execute(currentBitmap);
+    }
+
+    /**
+     * Process the result from making the API call.
+     *
+     * @param jsonResult the result of the API call as a string
+     * */
+    protected void finishProcessImage(final String jsonResult) {
+        /*
+         * Pretty-print the JSON into the bottom text-view to help with debugging.
+         */
+        TextView textView = findViewById(R.id.jsonDoc);
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        JsonParser jsonParser = new JsonParser();
+        JsonElement jsonElement = jsonParser.parse(jsonResult);
+        String prettyJsonString = gson.toJson(jsonElement);
+        textView.setText(prettyJsonString);
+
+    }
+
+    /** Current bitmap we are working with. */
+    private Bitmap currentBitmap;
+
+    /**
+     * Process a photo.
+     *
+     * Resizes an image and loads it into the UI.
+     *
+     * @param currentPhotoURI URI of the image to process
+     */
     private void loadPhoto(final Uri currentPhotoURI) {
         enableOrDisableButtons(false);
 
@@ -175,10 +313,76 @@ public final class Photo_Catcher extends AppCompatActivity {
 
         // Actually draw the image
         updateCurrentBitmap(BitmapFactory.decodeByteArray(imageData,
-                0, imageData.length, modifyOptions));
+                0, imageData.length, modifyOptions), true);
     }
+
+    /*
+     * Helper functions follow.
+     */
+
+    /**
+     * Update the currently displayed image, resetting the image information (caption, metadata,
+     * cat/dog indicators) if requested.
+     *
+     * @param setCurrentBitmap the new bitmap to display
+     * @param resetInfo whether to reset the image information
+     */
+    void updateCurrentBitmap(final Bitmap setCurrentBitmap, final boolean resetInfo) {
+        currentBitmap = setCurrentBitmap;
+        ImageView photoView = findViewById(R.id.menu);
+        photoView.setImageBitmap(currentBitmap);
+        enableOrDisableButtons(true);
+        if (resetInfo) {
+            TextView textView = findViewById(R.id.jsonDoc);
+            textView.setText("");
+            textView.setVisibility(View.INVISIBLE);
+            TextView caption = findViewById(R.id.caption);
+            caption.setText("");
+            caption.setVisibility(View.INVISIBLE);
+            ImageView cat = (ImageView) findViewById(R.id.cat);
+            cat.setVisibility(View.INVISIBLE);
+            ImageView dog = (ImageView) findViewById(R.id.dog);
+            dog.setVisibility(View.INVISIBLE);
+            TextView metadata = findViewById(R.id.metadata);
+            metadata.setText("");
+            metadata.setVisibility(View.INVISIBLE);
+        }
+    }
+    /**
+     * Helper function to swap button states.
+     *
+     * We disable the buttons when we don't have a valid image to process.
+     *
+     * @param enableOrDisable whether to enable or disable the buttons
+     */
+    private void enableOrDisableButtons(final boolean enableOrDisable) {
+        final ImageButton rotateLeft = findViewById(R.id.rotateLeft);
+        rotateLeft.setClickable(enableOrDisable);
+        rotateLeft.setEnabled(enableOrDisable);
+        final ImageButton processImage = findViewById(R.id.processImage);
+        processImage.setClickable(enableOrDisable);
+        processImage.setEnabled(enableOrDisable);
+    }
+
+    /**
+     * Add a photo to the gallery so that we can use it later.
+     *
+     * @param toAdd URI of the file to add
+     */
+    void addPhotoToGallery(final Uri toAdd) {
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        mediaScanIntent.setData(toAdd);
+        this.sendBroadcast(mediaScanIntent);
+        Log.d(TAG, "Added photo to gallery: " + toAdd);
+    }
+
+    /**
+     * Get a new file location for saving.
+     *
+     * @return the path to the new file or null of the create failed
+     */
     File getSaveFilename() {
-        String imageFileName = "Menu dish" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
+        String imageFileName = "MP3_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
                 .format(new Date());
         File storageDir;
         if (canWriteToPublicStorage) {
@@ -194,14 +398,20 @@ public final class Photo_Catcher extends AppCompatActivity {
             return null;
         }
     }
-    private Bitmap currentBitmap;
-    void updateCurrentBitmap(final Bitmap setCurrentBitmap) {
-        currentBitmap = setCurrentBitmap;
-        ImageView photoView = findViewById(R.id.menu);
-        photoView.setImageBitmap(currentBitmap);
-        enableOrDisableButtons(true);
-    }
-    private void enableOrDisableButtons(final boolean enableOrDisable) {
 
+    /**
+     * Gets the Volley request queue for this activity. For testing purposes only.
+     * @return the internal web request queue
+     */
+    RequestQueue getRequestQueue() {
+        return requestQueue;
+    }
+
+    /**
+     * Sets the Volley request queue used by this activity. For testing purposes only.
+     * @param newQueue the request queue to install
+     */
+    void setRequestQueue(final RequestQueue newQueue) {
+        requestQueue = newQueue;
     }
 }

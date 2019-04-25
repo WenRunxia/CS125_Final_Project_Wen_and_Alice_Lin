@@ -58,7 +58,7 @@
     <TextView
         android:id="@+id/dishInfo"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="107dp"
         android:text="TextView"
         app:layout_constraintBottom_toBottomOf="@+id/scrollView"
         app:layout_constraintEnd_toEndOf="@+id/scrollView"
@@ -66,5 +66,15 @@
         app:layout_constraintStart_toStartOf="@+id/scrollView"
         app:layout_constraintTop_toTopOf="@+id/scrollView"
         app:layout_constraintVertical_bias="1.0" />
+
+    <TextView
+        android:id="@+id/jsonDoc"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:text="TextView"
+        app:layout_constraintBottom_toTopOf="@+id/dishInfo"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/dishImage" />
 
 </android.support.constraint.ConstraintLayout>
