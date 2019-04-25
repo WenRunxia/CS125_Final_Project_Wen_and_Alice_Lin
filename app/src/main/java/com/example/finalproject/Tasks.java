@@ -6,7 +6,6 @@ import android.os.AsyncTask;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.android.volley.NetworkResponse;
@@ -69,8 +68,6 @@ class Tasks {
             if (activity == null || activity.isFinishing()) {
                 return;
             }
-            ProgressBar progressBar = activity.findViewById(R.id.progressBar);
-            progressBar.setVisibility(View.VISIBLE);
         }
 
         /**
@@ -112,18 +109,8 @@ class Tasks {
                     Log.w(TAG, "Problem saving image: " + e);
                 }
 
-                // Clear the progress bar
-                ProgressBar progressBar = activity.findViewById(R.id.progressBar);
-                progressBar.setVisibility(View.INVISIBLE);
             }, targetWidth, targetHeight,
                     ImageView.ScaleType.FIT_CENTER, Bitmap.Config.RGB_565, e -> {
-                // If the download failed alert the user and clear the progress bar
-                Toast.makeText(activity.getApplicationContext(),
-                        "Image download failed",
-                        Toast.LENGTH_LONG).show();
-                Log.w(TAG, "Image download failed: " + e);
-                ProgressBar progressBar = activity.findViewById(R.id.progressBar);
-                progressBar.setVisibility(View.INVISIBLE);
             });
             requestQueue.add(imageRequest);
             return 0;
@@ -183,8 +170,6 @@ class Tasks {
             if (activity == null || activity.isFinishing()) {
                 return;
             }
-            ProgressBar progressBar = activity.findViewById(R.id.progressBar);
-            progressBar.setVisibility(View.VISIBLE);
         }
 
         /**
@@ -247,14 +232,6 @@ class Tasks {
          * @param response The JSON text of the response.
          */
         void handleApiResponse(final String response) {
-            // On success, clear the progress bar and call finishProcessImage
-            Log.d(TAG, "Response: " + response);
-            Photo_Catcher activity = activityReference.get();
-            if (activity == null || activity.isFinishing()) {
-                return;
-            }
-            ProgressBar progressBar = activity.findViewById(R.id.progressBar);
-            progressBar.setVisibility(View.INVISIBLE);
             activity.finishProcessImage(response);
         }
 
@@ -275,8 +252,6 @@ class Tasks {
             if (activity == null || activity.isFinishing()) {
                 return;
             }
-            ProgressBar progressBar = activity.findViewById(R.id.progressBar);
-            progressBar.setVisibility(View.INVISIBLE);
         }
     }
 }
