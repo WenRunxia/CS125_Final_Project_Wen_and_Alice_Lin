@@ -1,4 +1,15 @@
 apply plugin: 'com.android.application'
+
+def getApiKey() {
+    Properties props = new Properties()
+    try {
+        props.load(new FileInputStream(project.file('secrets.properties')))
+    } catch (ignore) {
+        return ""
+    }
+    return props['API_KEY']
+}
+
 android {
     compileSdkVersion 28
     defaultConfig {
@@ -9,11 +20,16 @@ android {
         multiDexEnabled true
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        vectorDrawables.useSupportLibrary = true
     }
     buildTypes {
         release {
+            buildConfigField "String", "API_KEY", "\"" + getApiKey() +"\""
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            buildConfigField "String", "API_KEY", "\"" + getApiKey() + "\""
         }
     }
     compileOptions {
