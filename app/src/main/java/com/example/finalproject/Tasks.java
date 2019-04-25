@@ -6,6 +6,7 @@ import android.os.AsyncTask;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.android.volley.NetworkResponse;
@@ -232,6 +233,12 @@ class Tasks {
          * @param response The JSON text of the response.
          */
         void handleApiResponse(final String response) {
+            // On success, clear the progress bar and call finishProcessImage
+            Log.d(TAG, "Response: " + response);
+            Photo_Catcher activity = activityReference.get();
+            if (activity == null || activity.isFinishing()) {
+                return;
+            }
             activity.finishProcessImage(response);
         }
 
