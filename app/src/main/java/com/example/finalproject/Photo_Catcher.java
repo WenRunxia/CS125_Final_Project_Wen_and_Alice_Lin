@@ -103,6 +103,7 @@ public final class Photo_Catcher extends AppCompatActivity {
         processImage.setOnClickListener(v -> {
             Log.d(TAG, "Process image button clicked");
             startProcessImage();
+            screenShift();
         });
 
         // There are a few button that we disable into an image has been loaded
@@ -123,7 +124,10 @@ public final class Photo_Catcher extends AppCompatActivity {
                     REQUEST_WRITE_STORAGE);
         }
     }
-
+    private void screenShift() {
+        Intent intent = new Intent(this, Dish_Screen.class);
+        startActivity(intent);
+    }
     /**
      * Called when an intent that we requested has finished.
      *
@@ -336,16 +340,6 @@ public final class Photo_Catcher extends AppCompatActivity {
             TextView textView = findViewById(R.id.jsonDoc);
             textView.setText("");
             textView.setVisibility(View.INVISIBLE);
-            TextView caption = findViewById(R.id.caption);
-            caption.setText("");
-            caption.setVisibility(View.INVISIBLE);
-            ImageView cat = (ImageView) findViewById(R.id.cat);
-            cat.setVisibility(View.INVISIBLE);
-            ImageView dog = (ImageView) findViewById(R.id.dog);
-            dog.setVisibility(View.INVISIBLE);
-            TextView metadata = findViewById(R.id.metadata);
-            metadata.setText("");
-            metadata.setVisibility(View.INVISIBLE);
         }
     }
     /**
@@ -356,10 +350,7 @@ public final class Photo_Catcher extends AppCompatActivity {
      * @param enableOrDisable whether to enable or disable the buttons
      */
     private void enableOrDisableButtons(final boolean enableOrDisable) {
-        final ImageButton rotateLeft = findViewById(R.id.rotateLeft);
-        rotateLeft.setClickable(enableOrDisable);
-        rotateLeft.setEnabled(enableOrDisable);
-        final ImageButton processImage = findViewById(R.id.processImage);
+        final Button processImage = findViewById(R.id.start);
         processImage.setClickable(enableOrDisable);
         processImage.setEnabled(enableOrDisable);
     }
