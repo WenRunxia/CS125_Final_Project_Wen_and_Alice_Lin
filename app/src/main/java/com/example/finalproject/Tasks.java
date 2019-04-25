@@ -29,7 +29,7 @@ import java.util.Map;
  */
 class Tasks {
     /** Default logging tag for messages from app tasks. */
-    private static final String TAG = "MP3:Tasks";
+    private static final String TAG = "MP5:Tasks";
 
     /** Default quality level for bitmap compression. */
     private static final int DEFAULT_COMPRESSION_QUALITY_LEVEL = 100;
@@ -82,7 +82,7 @@ class Tasks {
             if (activity == null || activity.isFinishing()) {
                 return 0;
             }
-            final ImageView photoView = activity.findViewById(R.id.photoView);
+            final ImageView photoView = activity.findViewById(R.id.menu);
             int targetWidth = photoView.getWidth();
             int targetHeight = photoView.getHeight();
 
